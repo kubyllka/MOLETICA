@@ -12,6 +12,8 @@ __pycache__/
 *.png
 *.jpg
 *.mp4
+models/*.pth
+
 
 # Ігнорування IDE-шного
 .idea/
