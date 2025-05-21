@@ -1,8 +1,14 @@
 fastapi[standard]~=0.115.7
 pydantic~=2.10.6
-torch~=2.5.1
-torchvision~=0.20.1
 pillow~=11.1.0
 requests~=2.32.3
 boto3~=1.36.6
 black~=25.1.0
+albumentations==2.0.6
+numpy==1.26.4
+opencv-python==4.11.0.86
+Pillow==11.1.0
+scikit-image==0.25.2
+torch==2.5.1
+torchvision==0.20.1
+matplotlib==3.8.3
