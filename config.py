@@ -10,3 +10,4 @@ CLASS_LABELS = {
 
 DETECTION_TYPE = "skin-cancer"
 RESULTS_FOLDER = "results"
+PHOTOS_FOLDER = "photos"

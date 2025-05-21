@@ -398,19 +398,14 @@ def predict_moles(classifier, mole_crops, device):
             plt.axis( "off" )
             plt.show()
 
-            # Конвертуємо зображення в PIL, якщо воно в NumPy масиві
             if isinstance(crop, np.ndarray):
                 crop = Image.fromarray(crop)
 
-            # Застосовуємо трансформації до кожної родимки
-            input_tensor = transform(crop).unsqueeze(0).to(device)  # Додаємо batch size
+            input_tensor = transform(crop).unsqueeze(0).to(device)
 
-            # Передбачення для родимки
             output = classifier(input_tensor)
-
-            # Витягуємо передбачення (клас з найвищою ймовірністю)
-            _, predicted_class = torch.max(output, 1)
-            predictions.append(predicted_class.item())
+            prob = torch.softmax( output, dim=1 ).squeeze().tolist()
+            predictions.append(prob)
 
     return predictions
 
