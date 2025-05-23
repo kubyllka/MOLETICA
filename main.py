@@ -8,10 +8,14 @@ import boto3
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from validation_process import *
-from segmentation_process import *
-from classification_process import *
+from process_pipeline import (
+    load_model_autoencoder, load_model_classifier, load_model_segmentation,
+    AutoencoderPipeline, SegmentationPipeline, ClassificationPipeline
+)
 from config import CLASS_LABELS, DETECTION_TYPE, RESULTS_FOLDER, PHOTOS_FOLDER
+
+import torch
+from PIL import Image
 
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
@@ -21,10 +25,14 @@ logger = logging.getLogger(__name__)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 random_state = 4747
 
-# Load models
+# Load models and instantiate OOP pipelines
 validation_model = load_model_autoencoder("models/autoencoder.pth", device)
 classification_model = load_model_classifier("models/classifier.pth", device)
 segmentation_model = load_model_segmentation("models/segmentation.pth", device)
+
+autoencoder_pipeline = AutoencoderPipeline(validation_model, device)
+segmentation_pipeline = SegmentationPipeline(segmentation_model, device)
+classification_pipeline = ClassificationPipeline(classification_model, device)
 
 app = FastAPI()
 
@@ -72,8 +80,7 @@ async def validate_skin(request: ValidationRequestModel):
     """
     try:
         image, _ = fetch_image_from_s3(request.url)
-        preprocessed = image_preparation(image, device)
-        result = validate_image(validation_model, preprocessed, device)
+        result = autoencoder_pipeline.validate(image)
 
         is_mole = result['PSNR'] >= 24
         logger.info(f"Validation PSNR: {result['PSNR']} - Is mole: {is_mole}")
@@ -89,20 +96,18 @@ async def classify_skin(request: ClassificationRequestModel):
     Save cropped images and results back to S3.
     """
     try:
-        # Parse input
         timestamp = datetime.fromisoformat(request.timestamp)
         date_str = timestamp.strftime("%Y-%m-%d")
 
         image, bucket = fetch_image_from_s3(request.url)
-        image_tensor = image_preparation_for_mask_rcnn(image, device)
 
         # Segmentation stage
-        segmented_image, masks = segment_single_image(segmentation_model, image_tensor)
-        mole_crops, bboxes, mask_crops = extract_moles(segmented_image, masks)
-        mole_crops_processed = extract_moles_from_contours(mole_crops, mask_crops)
+        segmented_image, masks = segmentation_pipeline.segment(image)
+        mole_crops, bboxes, mask_crops = segmentation_pipeline.extract_moles(segmented_image, masks)
+        mole_crops_processed = segmentation_pipeline.extract_moles_from_contours(mole_crops, mask_crops)
 
         # Classification stage
-        predictions = predict_moles(classification_model, mole_crops_processed, device)
+        predictions = classification_pipeline.predict(mole_crops_processed)
 
         s3 = S3ClientSingleton()
         all_results = []
@@ -119,13 +124,10 @@ async def classify_skin(request: ClassificationRequestModel):
             logger.info(f"Saved crop image to S3: {crop_path}")
 
             # Format result entry
-            x1, y1, x2, y2 = bbox
-            x, y = min(x1, x2), min(y1, y2)
-            width, height = abs(x2 - x1), abs(y2 - y1)
-
+            x, y, w, h = bbox
             label_probs = {CLASS_LABELS[j]: float(prob) for j, prob in enumerate(prediction)}
             result_entry = {
-                "bbox": {"x": x, "y": y, "width": width, "height": height},
+                "bbox": {"x": x, "y": y, "width": w, "height": h},
                 "label_probabilities": label_probs,
                 "image_url": f"s3://{bucket}/{crop_path}"
             }
