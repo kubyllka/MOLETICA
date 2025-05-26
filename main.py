@@ -73,8 +73,8 @@ def fetch_image_from_s3(s3_url: str):
         logger.error(f"Failed to fetch image from S3: {e}")
         raise
 
-@app.post("/validate-skin")
-async def validate_skin(request: ValidationRequestModel):
+@app.post("/validate-mole")
+async def validate_mole(request: ValidationRequestModel):
     """
     Validate if the image likely contains a mole using an autoencoder model.
     """
@@ -89,8 +89,8 @@ async def validate_skin(request: ValidationRequestModel):
         logger.exception("Validation failed")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/classify-skin")
-async def classify_skin(request: ClassificationRequestModel):
+@app.post("/classify-mole")
+async def classify_mole(request: ClassificationRequestModel):
     """
     Detect, crop, and classify moles in an image using segmentation and classification models.
     Save cropped images and results back to S3.
