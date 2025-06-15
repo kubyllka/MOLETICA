@@ -8,6 +8,6 @@ CLASS_LABELS = {
     6: "Vascular Lesions (VASC)",
 }
 
-DETECTION_TYPE = "skin-cancer"
+DETECTION_TYPE = "oncology"
 RESULTS_FOLDER = "results"
 PHOTOS_FOLDER = "photos"
