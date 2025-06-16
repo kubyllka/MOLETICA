@@ -43,9 +43,18 @@ async def classify(request: ClassifyRequest):
     try:
         # Parse and validate timestamp
         try:
-            timestamp = datetime.fromisoformat(request.timestamp )
-        except ValueError:
-            raise HTTPException( status_code=400, detail="Invalid timestamp format, expected ISO 8601" )
+            if isinstance( request.timestamp, (int, float) ) or (
+                    isinstance( request.timestamp, str ) and request.timestamp.isdigit()):
+                # Convert from Unix milliseconds
+                timestamp = datetime.fromtimestamp( int( request.timestamp ) / 1000 )
+            else:
+                # Assume ISO 8601 format
+                timestamp = datetime.fromisoformat( request.timestamp )
+        except Exception:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid timestamp format. Expected ISO 8601 string or Unix milliseconds."
+            )
 
         date_str = timestamp.strftime( "%Y-%m-%d" )
 
@@ -136,9 +145,18 @@ async def classify(request: ClassifyRequest):
     try:
         # Parse and validate timestamp
         try:
-            timestamp = datetime.fromisoformat(request.timestamp )
-        except ValueError:
-            raise HTTPException( status_code=400, detail="Invalid timestamp format, expected ISO 8601" )
+            if isinstance( request.timestamp, (int, float) ) or (
+                    isinstance( request.timestamp, str ) and request.timestamp.isdigit()):
+                # Convert from Unix milliseconds
+                timestamp = datetime.fromtimestamp( int( request.timestamp ) / 1000 )
+            else:
+                # Assume ISO 8601 format
+                timestamp = datetime.fromisoformat( request.timestamp )
+        except Exception:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid timestamp format. Expected ISO 8601 string or Unix milliseconds."
+            )
 
         date_str = timestamp.strftime( "%Y-%m-%d" )
 
